@@ -37,10 +37,16 @@ library.vacbo.dev {
 	}
 
 	reverse_proxy calibre-web:8083 {
+		# Critical for OAuth: preserve original Host header
+		header_up Host {host}
 		header_up X-Real-IP {remote_host}
 		header_up X-Forwarded-For {remote_host}
 		header_up X-Forwarded-Proto {scheme}
 		header_up X-Scheme {scheme}
+		header_up X-Forwarded-Host {host}
+
+		# Flush headers immediately (helps with OAuth redirects)
+		flush_interval -1
 
 		transport http {
 			read_timeout 300s
