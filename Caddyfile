@@ -32,6 +32,9 @@ library.vacbo.dev {
 	import security_headers
 	encode zstd gzip
 
+	# Prevent Cloudflare from caching dynamic content
+	header Cache-Control "no-store, no-cache, must-revalidate, private"
+
 	handle /health {
 		respond "OK" 200
 	}
@@ -44,6 +47,9 @@ library.vacbo.dev {
 		header_up X-Forwarded-Proto {scheme}
 		header_up X-Scheme {scheme}
 		header_up X-Forwarded-Host {host}
+		
+		# Pass Cloudflare's real visitor IP
+		header_up CF-Connecting-IP {header.CF-Connecting-IP}
 
 		# Flush headers immediately (helps with OAuth redirects)
 		flush_interval -1
