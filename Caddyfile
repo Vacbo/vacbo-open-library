@@ -1,0 +1,59 @@
+{
+	email {$ACME_EMAIL}
+	acme_dns cloudflare {$CLOUDFLARE_API_TOKEN}
+	grace_period 10s
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+		-Server
+		-X-Powered-By
+	}
+}
+
+kosync.vacbo.dev {
+	import security_headers
+	encode zstd gzip
+
+	reverse_proxy host.docker.internal:7200 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+	}
+}
+
+library.vacbo.dev {
+	import security_headers
+	encode zstd gzip
+
+	handle /health {
+		respond "OK" 200
+	}
+
+	reverse_proxy calibre-web:8083 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Scheme {scheme}
+
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+
+	log {
+		output file /data/logs/library-access.log {
+			roll_size 50mb
+			roll_keep 5
+			roll_keep_for 168h
+		}
+		format json
+	}
+}

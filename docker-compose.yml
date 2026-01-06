@@ -1,0 +1,96 @@
+# ===========================================
+# Vacbo Open Library - Docker Compose
+# ===========================================
+# For Oracle Cloud ARM64 + Cloudflare
+# https://library.vacbo.dev
+
+services:
+  # ===========================================
+  # Calibre-Web - Main Application
+  # ===========================================
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre-web
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Sao_Paulo}
+      # Enable ebook conversion tools (Calibre binaries)
+      - DOCKER_MODS=linuxserver/mods:universal-calibre
+      # Required for Google OAuth token scope relaxation
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1
+    volumes:
+      - ./config/calibre-web:/config
+      - ./library:/books
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - library-net
+    labels:
+      # Stop this container during backup for data consistency
+      - "docker-volume-backup.stop-during-backup=true"
+
+  # ===========================================
+  # Caddy - Reverse Proxy with Auto HTTPS
+  # ===========================================
+  # Using Cloudflare DNS challenge for certificates
+  # This works even with Cloudflare proxy enabled
+  caddy:
+    image: ghcr.io/slothcroissant/caddy-cloudflaredns:latest
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+      - ACME_EMAIL=${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./config/caddy/data:/data
+      - ./config/caddy/config:/config
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - library-net
+    depends_on:
+      calibre-web:
+        condition: service_healthy
+
+  # ===========================================
+  # Backup - Automated Daily Backups
+  # ===========================================
+  backup:
+    image: offen/docker-volume-backup:v2
+    container_name: backup
+    environment:
+      # Schedule: Daily at 3 AM (server timezone)
+      - BACKUP_CRON_EXPRESSION=0 3 * * *
+      # Keep last 7 days of backups
+      - BACKUP_RETENTION_DAYS=7
+      # Compression format
+      - BACKUP_COMPRESSION=gz
+      # Filename format with timestamp
+      - BACKUP_FILENAME=library-backup-%Y%m%d-%H%M%S.tar.gz
+      # Stop containers with this label during backup
+      - BACKUP_STOP_DURING_BACKUP_LABEL=docker-volume-backup.stop-during-backup
+    volumes:
+      # Backup sources (mounted read-only for safety)
+      - ./config/calibre-web:/backup/calibre-web-config:ro
+      - ./library:/backup/library:ro
+      # Backup destination
+      - ./backups:/archive
+      # Docker socket for container control during backup
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - library-net
+
+networks:
+  library-net:
+    driver: bridge

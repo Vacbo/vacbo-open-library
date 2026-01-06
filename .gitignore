@@ -1,0 +1,81 @@
+# ===========================================
+# Vacbo Open Library - Git Ignore
+# ===========================================
+
+# -------------------------------------------
+# Environment & Secrets
+# -------------------------------------------
+.env
+.env.local
+.env.*.local
+*.env
+
+# -------------------------------------------
+# Application Data (Large/Sensitive)
+# -------------------------------------------
+config/
+library/
+backups/
+
+# -------------------------------------------
+# Logs
+# -------------------------------------------
+*.log
+logs/
+
+# -------------------------------------------
+# OS Generated Files
+# -------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# -------------------------------------------
+# Editor/IDE Files
+# -------------------------------------------
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+\#*\#
+
+# -------------------------------------------
+# Temporary Files
+# -------------------------------------------
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+
+# -------------------------------------------
+# Python (if any scripts)
+# -------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+
+# -------------------------------------------
+# Node.js (if any tooling)
+# -------------------------------------------
+node_modules/
+npm-debug.log*
+
+# -------------------------------------------
+# Docker
+# -------------------------------------------
+# Don't ignore docker-compose.yml or Caddyfile
+# But ignore any local overrides
+docker-compose.override.yml
+docker-compose.local.yml
