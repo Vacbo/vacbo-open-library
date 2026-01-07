@@ -19,6 +19,8 @@ services:
       - DOCKER_MODS=linuxserver/mods:universal-calibre
       # Required for Google OAuth token scope relaxation
       - OAUTHLIB_RELAX_TOKEN_SCOPE=1
+      # Stable Flask secret key to prevent session invalidation on container restart
+      - SECRET_KEY=${CALIBRE_SECRET_KEY}
     volumes:
       - ./config/calibre-web:/config
       - ./library:/books
