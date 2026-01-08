@@ -28,9 +28,55 @@ kosync.vacbo.dev {
 	}
 }
 
+# Direct access - bypasses Cloudflare (for large uploads only)
+direct.library.vacbo.dev {
+	import security_headers
+	
+	# Allow large uploads (no Cloudflare limit)
+	request_body {
+		max_size 300MB
+	}
+
+	# Only allow upload-related paths (home page has upload modal too)
+	@upload_paths {
+		path /
+		path /upload /upload/*
+		path /login /login/*
+		path /me /me/*
+		path /admin /admin/*
+		path /metadata /metadata/*
+		path /static/* /ajax/*
+	}
+
+	handle @upload_paths {
+		reverse_proxy calibre-web:8083 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+
+			transport http {
+				read_timeout 600s
+				write_timeout 600s
+			}
+		}
+	}
+
+	# Block everything else - redirect to main domain
+	handle {
+		redir https://library.vacbo.dev{uri} temporary
+	}
+}
+
+# Main access - through Cloudflare
 library.vacbo.dev {
 	import security_headers
 	encode zstd gzip
+
+	# Allow large book uploads (max 100MB - Cloudflare free plan limit)
+	request_body {
+		max_size 100MB
+	}
 
 	# Prevent Cloudflare from caching dynamic content
 	header Cache-Control "no-store, no-cache, must-revalidate, private"
