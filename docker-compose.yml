@@ -24,7 +24,7 @@ services:
         volumes:
             - ./config/calibre-web:/config
             - ./library:/books
-            - ./config/calibre-web/custom-services.d/99-fix-cookies:/etc/cont-init.d/99-fix-cookies
+            - ./scripts/99-fix-cookies:/etc/cont-init.d/99-fix-cookies
         healthcheck:
             test: ["CMD", "curl", "-f", "http://localhost:8083/"]
             interval: 30s

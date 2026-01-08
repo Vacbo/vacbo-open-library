@@ -1,0 +1,22 @@
+#!/command/with-contenv bash
+# Fix COOKIE_SECURE (idempotent)
+grep -q "COOKIE_SECURE = True" /app/calibre-web/cps/cw_login/config.py || \
+    sed -i "s/COOKIE_SECURE = False/COOKIE_SECURE = True/" /app/calibre-web/cps/cw_login/config.py
+
+# Add SESSION_COOKIE_SECURE if not present
+grep -q "SESSION_COOKIE_SECURE" /app/calibre-web/cps/__init__.py || \
+    sed -i "s/SESSION_COOKIE_HTTPONLY=True,/SESSION_COOKIE_HTTPONLY=True,\n    SESSION_COOKIE_SECURE=True,/" /app/calibre-web/cps/__init__.py
+
+# Add PERMANENT_SESSION_LIFETIME if not present (30 days)
+grep -q "PERMANENT_SESSION_LIFETIME" /app/calibre-web/cps/__init__.py || \
+    sed -i "s/SESSION_COOKIE_SECURE=True,/SESSION_COOKIE_SECURE=True,\n    PERMANENT_SESSION_LIFETIME=2592000,/" /app/calibre-web/cps/__init__.py
+
+# Add before_request handler to make sessions permanent (adds Expires to session cookie)
+# This is required because Flask needs session.permanent = True per-request to add Expires header
+grep -q "make_session_permanent" /app/calibre-web/cps/__init__.py || \
+    sed -i '/^app = Flask(__name__)/a\
+\
+@app.before_request\
+def make_session_permanent():\
+    from flask import session\
+    session.permanent = True' /app/calibre-web/cps/__init__.py
