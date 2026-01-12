@@ -75,7 +75,7 @@ services:
             # Schedule: Daily at 3 AM (server timezone)
             - BACKUP_CRON_EXPRESSION=0 3 * * *
             # Keep last 7 days of backups
-            - BACKUP_RETENTION_DAYS=7
+            - BACKUP_RETENTION_DAYS=3
             # Compression format
             - BACKUP_COMPRESSION=gz
             # Filename format with timestamp
